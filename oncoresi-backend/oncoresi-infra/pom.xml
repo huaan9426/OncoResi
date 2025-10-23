@@ -16,19 +16,48 @@
     <description>基础设施层 - 数据库实现、外部服务、缓存、消息队列</description>
 
     <dependencies>
+        <!-- Domain 层依赖 -->
         <dependency>
             <groupId>com.oncoresi</groupId>
             <artifactId>oncoresi-domain</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- MyBatis-Flex（替代 JPA） -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-spring-boot3-starter</artifactId>
+            <version>${mybatis-flex.version}</version>
         </dependency>
+
+        <!-- MyBatis-Flex 代码生成器（可选） -->
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-codegen</artifactId>
+            <version>${mybatis-flex.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- openGauss 数据库驱动（信创） -->
+        <dependency>
+            <groupId>org.opengauss</groupId>
+            <artifactId>opengauss-jdbc</artifactId>
+            <version>${opengauss.version}</version>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- PostgreSQL 驱动（openGauss 兼容，备用） -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- JSQLParser - SQL解析器（用于数据权限拦截器） -->
+        <dependency>
+            <groupId>com.github.jsqlparser</groupId>
+            <artifactId>jsqlparser</artifactId>
+            <version>4.7</version>
         </dependency>
     </dependencies>
 </project>

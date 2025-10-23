@@ -1,63 +1,70 @@
 package com.oncoresi.infra.persistence.po;
 
+import com.mybatisflex.annotation.*;
 import lombok.Data;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.Set;
 
 /**
- * 用户数据库持久化对象
+ * 用户数据库持久化对象（MyBatis-Flex）
  */
 @Data
-@Entity
-@Table(name = "sys_user")
+@Table("sys_user")
 public class UserPO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    /**
+     * 主键ID，自增
+     */
+    @Id(keyType = KeyType.Auto)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    /**
+     * 用户名，唯一
+     */
+    @Column("username")
     private String username;
 
-    @Column(nullable = false, length = 200)
+    /**
+     * 密码（BCrypt 加密）
+     */
+    @Column("password")
     private String password;
 
-    @Column(name = "real_name", length = 50)
+    /**
+     * 真实姓名
+     */
+    @Column("real_name")
     private String realName;
 
-    @Column(length = 20)
+    /**
+     * 手机号
+     */
+    @Column("phone")
     private String phone;
 
-    @Column(length = 100)
+    /**
+     * 邮箱
+     */
+    @Column("email")
     private String email;
 
-    @Column(nullable = false)
+    /**
+     * 状态：1-启用，0-禁用
+     */
+    @Column("status")
     private Integer status = 1;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "sys_user_role",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<RolePO> roles;
-
-    @Column(name = "create_time")
+    /**
+     * 创建时间（自动填充）
+     */
+    @Column(value = "create_time", onInsertValue = "now()")
     private LocalDateTime createTime;
 
-    @Column(name = "update_time")
+    /**
+     * 更新时间（自动填充）
+     */
+    @Column(value = "update_time", onInsertValue = "now()", onUpdateValue = "now()")
     private LocalDateTime updateTime;
 
-    @PrePersist
-    public void prePersist() {
-        this.createTime = LocalDateTime.now();
-        this.updateTime = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updateTime = LocalDateTime.now();
-    }
+    // 注意：roles 不再作为实体字段，而是通过 Mapper 查询关联数据
 }

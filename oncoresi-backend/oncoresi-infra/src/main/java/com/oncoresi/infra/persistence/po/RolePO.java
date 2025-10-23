@@ -1,36 +1,44 @@
 package com.oncoresi.infra.persistence.po;
 
+import com.mybatisflex.annotation.*;
 import lombok.Data;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * 角色数据库持久化对象
+ * 角色数据库持久化对象（MyBatis-Flex）
  */
 @Data
-@Entity
-@Table(name = "sys_role")
+@Table("sys_role")
 public class RolePO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    /**
+     * 主键ID，自增
+     */
+    @Id(keyType = KeyType.Auto)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    /**
+     * 角色编码，唯一（如：HOSPITAL_ADMIN）
+     */
+    @Column("code")
     private String code;
 
-    @Column(nullable = false, length = 50)
+    /**
+     * 角色名称（如：医院管理员）
+     */
+    @Column("name")
     private String name;
 
-    @Column(length = 200)
+    /**
+     * 角色描述
+     */
+    @Column("description")
     private String description;
 
-    @Column(name = "create_time")
+    /**
+     * 创建时间（自动填充）
+     */
+    @Column(value = "create_time", onInsertValue = "now()")
     private LocalDateTime createTime;
-
-    @PrePersist
-    public void prePersist() {
-        this.createTime = LocalDateTime.now();
-    }
 }

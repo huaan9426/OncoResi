@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.oncoresi</groupId>
+        <artifactId>oncoresi-backend</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>oncoresi-query</artifactId>
+    <name>oncoresi-query</name>
+    <description>CQRS查询层 - 复杂查询、统计报表、绩效分析</description>
+
+    <dependencies>
+        <!-- Types 层依赖（DTO） -->
+        <dependency>
+            <groupId>com.oncoresi</groupId>
+            <artifactId>oncoresi-types</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Infra 层依赖（直接使用Mapper查询） -->
+        <dependency>
+            <groupId>com.oncoresi</groupId>
+            <artifactId>oncoresi-infra</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- MyBatis-Flex（QueryWrapper） -->
+        <dependency>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-spring-boot3-starter</artifactId>
+            <version>${mybatis-flex.version}</version>
+        </dependency>
+    </dependencies>
+</project>

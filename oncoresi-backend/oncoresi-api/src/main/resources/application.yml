@@ -3,26 +3,153 @@ spring:
     name: oncoresi-backend
   profiles:
     active: dev
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/oncoresi?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
 
+  # openGauss 数据库配置（信创）
+  datasource:
+    driver-class-name: org.opengauss.Driver
+    url: jdbc:opengauss://localhost:5432/oncoresi?currentSchema=public&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: gaussdb
+    password: Gaussdb@123
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # Redis 配置（腾讯 Tendis 兼容）
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+      timeout: 5000ms
+
+  # Spring AI + Ollama 配置（本地 AI）
+  ai:
+    enabled: false  # AI 功能总开关（true=启用，false=禁用）
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        enabled: true
+        options:
+          model: qwen2.5:7b
+          temperature: 0.7
+          top-p: 0.9
+
+# MyBatis-Flex 配置
+mybatis-flex:
+  # 开启驼峰命名转换
+  configuration:
+    map-underscore-to-camel-case: true
+    # 打印 SQL
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  # Mapper XML 文件位置
+  mapper-locations: classpath*:/mapper/**/*.xml
+  # 实体类扫描包
+  type-aliases-package: com.oncoresi.infra.persistence.po
+
+# Sa-Token 配置
+sa-token:
+  # Token 名称（header、cookie 中的 key）
+  token-name: Authorization
+  # Token 前缀
+  token-prefix: Bearer
+  # Token 有效期（单位：秒）默认 24 小时
+  timeout: 86400
+  # Token 最低活跃频率（单位：秒），如果 Token 超过此时间没有访问系统就会被冻结
+  active-timeout: -1
+  # 是否允许同一账号多地同时登录
+  is-concurrent: true
+  # 在多人登录同一账号时，是否共用一个 Token
+  is-share: false
+  # Token 风格（uuid、simple-uuid、random-32、random-64、random-128、tik）
+  token-style: uuid
+  # 是否输出操作日志
+  is-log: true
+  # 是否从 cookie 中读取 Token
+  is-read-cookie: false
+  # 是否从 header 中读取 Token
+  is-read-header: true
+  # 是否从请求体中读取 Token
+  is-read-body: false
+  # Token 持久化方式（使用 Redis）
+  is-print: false
+
+# RocketMQ 配置
+rocketmq:
+  name-server: localhost:9876
+  producer:
+    group: oncoresi-producer-group
+    send-message-timeout: 3000
+    retry-times-when-send-failed: 2
+
+# 服务器配置
 server:
   port: 8080
   servlet:
     context-path: /api
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  # 优雅关闭
+  shutdown: graceful
 
+# SpringDoc OpenAPI 配置（Swagger 3.0）
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  info:
+    title: OncoResi API 文档
+    description: 医师规培管理系统 RESTful API
+    version: 1.0.0
+    contact:
+      name: OncoResi Team
+      email: support@oncoresi.com
+  group-configs:
+    - group: 认证模块
+      paths-to-match: /auth/**
+    - group: 用户模块
+      paths-to-match: /users/**
+
+# Spring Boot Actuator 监控端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# 日志配置
 logging:
   level:
+    root: INFO
     com.oncoresi: DEBUG
-    org.hibernate.SQL: DEBUG
+    com.mybatisflex: DEBUG
+    cn.dev33.satoken: DEBUG
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n'
+  file:
+    name: logs/oncoresi.log
+    max-size: 100MB
+    max-history: 30

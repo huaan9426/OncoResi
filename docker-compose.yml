@@ -1,0 +1,160 @@
+version: '3.8'
+
+name: oncoresi
+
+services:
+  # openGauss 数据库（信创）
+  opengauss:
+    image: enmotech/opengauss:5.1.0
+    container_name: oncoresi-opengauss
+    restart: always
+    environment:
+      GS_PASSWORD: Gaussdb@123
+      GS_USERNAME: gaussdb
+      GS_DB: oncoresi
+    ports:
+      - "5432:5432"
+    volumes:
+      - opengauss-data:/var/lib/opengauss
+      - ./oncoresi-backend/oncoresi-infra/src/main/resources/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - oncoresi-network
+    healthcheck:
+      test: ["CMD-SHELL", "gs_ctl query -D /var/lib/opengauss/data"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis（腾讯 Tendis 兼容）
+  redis:
+    image: redis:7-alpine
+    container_name: oncoresi-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - oncoresi-network
+    command: redis-server --appendonly yes --requirepass ""
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # RocketMQ NameServer
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.0
+    container_name: oncoresi-rocketmq-namesrv
+    restart: always
+    ports:
+      - "9876:9876"
+    environment:
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m"
+    command: sh mqnamesrv
+    networks:
+      - oncoresi-network
+
+  # RocketMQ Broker
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.0
+    container_name: oncoresi-rocketmq-broker
+    restart: always
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m"
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/broker.conf
+    depends_on:
+      - rocketmq-namesrv
+    networks:
+      - oncoresi-network
+    volumes:
+      - rocketmq-broker-data:/home/rocketmq/store
+
+  # Ollama（本地 AI 模型服务）
+  ollama:
+    image: ollama/ollama:latest
+    container_name: oncoresi-ollama
+    restart: always
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - oncoresi-network
+    # 如果有 GPU，取消下面的注释
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 后端应用
+  backend:
+    build:
+      context: ./oncoresi-backend
+      dockerfile: Dockerfile
+    container_name: oncoresi-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # 数据库配置
+      SPRING_DATASOURCE_URL: jdbc:opengauss://opengauss:5432/oncoresi?currentSchema=public&useUnicode=true&characterEncoding=utf8
+      SPRING_DATASOURCE_USERNAME: gaussdb
+      SPRING_DATASOURCE_PASSWORD: Gaussdb@123
+      # Redis 配置
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      # RocketMQ 配置
+      ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
+      # Ollama 配置
+      SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
+      # JVM 参数
+      JAVA_OPTS: "-Xms512m -Xmx1024m"
+    depends_on:
+      opengauss:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rocketmq-namesrv:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+    networks:
+      - oncoresi-network
+    volumes:
+      - backend-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  opengauss-data:
+    driver: local
+  redis-data:
+    driver: local
+  rocketmq-broker-data:
+    driver: local
+  ollama-models:
+    driver: local
+  backend-logs:
+    driver: local
+
+networks:
+  oncoresi-network:
+    driver: bridge
